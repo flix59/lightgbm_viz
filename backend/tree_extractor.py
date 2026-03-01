@@ -24,6 +24,7 @@ class TreeExtractor:
 
         # Get tree structures
         self.tree_info = self._extract_tree_info()
+        self._node_indices_cache: Dict[int, Dict[str, np.ndarray]] = {}
 
     def _extract_tree_info(self) -> List[Dict[str, Any]]:
         """Extract tree structure from booster."""
@@ -128,6 +129,61 @@ class TreeExtractor:
         }).sort_values('importance', ascending=False)
 
         return df
+
+    def get_node_sample_indices(self, tree_idx: int) -> Dict[str, np.ndarray]:
+        """
+        Get the sample indices that reach each node, cached per tree.
+
+        Returns:
+            Dictionary mapping node_id -> array of sample indices
+        """
+        if tree_idx in self._node_indices_cache:
+            return self._node_indices_cache[tree_idx]
+
+        tree = self.get_tree(tree_idx)
+        node_indices: Dict[str, np.ndarray] = {}
+
+        def traverse(node, sample_indices: np.ndarray):
+            if 'split_index' not in node:
+                node_indices[f"leaf_{node.get('leaf_index', 'unknown')}"] = sample_indices
+                return
+
+            split_feature = node['split_feature']
+            threshold = node['threshold']
+            decision_type = node.get('decision_type', '<=')
+            feature_name = self.feature_names[split_feature]
+            feature_values = self.X_data[feature_name].iloc[sample_indices].values
+
+            left_mask = feature_values <= threshold if decision_type == '<=' else feature_values < threshold
+
+            node_id = f"split_{node['split_index']}"
+            node_indices[node_id] = sample_indices
+
+            if 'left_child' in node:
+                traverse(node['left_child'], sample_indices[left_mask])
+            if 'right_child' in node:
+                traverse(node['right_child'], sample_indices[~left_mask])
+
+        traverse(tree, np.arange(len(self.X_data)))
+        self._node_indices_cache[tree_idx] = node_indices
+        return node_indices
+
+    def get_tree_contributions(self) -> np.ndarray:
+        """
+        Compute mean absolute contribution of each tree across training data.
+
+        Each tree's raw score is the learning-rate-scaled leaf value applied to
+        each sample. The mean absolute value measures how much that tree moves
+        predictions on average.
+
+        Returns:
+            Array of shape (n_trees,) with mean absolute contributions
+        """
+        contributions = []
+        for i in range(self.get_num_trees()):
+            preds = self.booster.predict(self.X_data, start_iteration=i, num_iteration=1)
+            contributions.append(float(np.mean(np.abs(preds))))
+        return np.array(contributions)
 
     def predict_leaf_indices(self, tree_idx: int = None) -> np.ndarray:
         """

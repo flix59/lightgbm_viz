@@ -43,13 +43,13 @@ def train_housing_model():
         'objective': 'regression',
         'metric': 'rmse',
         'boosting_type': 'gbdt',
-        'num_leaves': 15,  # Small trees for better visualization
+        'num_leaves': 50,  # Small trees for better visualization
         'learning_rate': 0.1,
         'feature_fraction': 0.9,
         'bagging_fraction': 0.8,
         'bagging_freq': 5,
         'verbose': -1,
-        'max_depth': 5  # Limit depth for clarity
+        'max_depth': 25  # Limit depth for clarity
     }
 
     print("\nTraining model...")

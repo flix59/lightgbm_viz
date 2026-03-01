@@ -1,12 +1,12 @@
 [project]
 name = "lightgbm-viz"
 version = "0.1.0"
-description = "Add your description here"
+description = "LightGBM forest visualization with FastAPI + React Flow"
 requires-python = ">=3.14"
 dependencies = [
-    "dash>=4.0.0",
+    "fastapi>=0.115.0",
     "lightgbm>=4.6.0",
     "pandas>=3.0.1",
-    "plotly>=6.5.2",
     "scikit-learn>=1.8.0",
+    "uvicorn[standard]>=0.34.0",
 ]
