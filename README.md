@@ -1,6 +1,6 @@
 # LightGBM Tree Visualizer
 
-Interactive web app for visualizing all trees in a LightGBM boosted forest, built with Dash + Plotly.
+Interactive visualization tool for exploring all trees in a LightGBM boosted forest with a modern frontend.
 
 ## Setup
 
@@ -18,15 +18,18 @@ uv sync
 
 **1. Train the model**
 ```bash
-uv run python train_model.py
+uv run python example/train_model.py
 ```
-Trains a LightGBM regression model on `housing.csv` and saves `model.pkl` + `train_data.pkl`.
+Trains a LightGBM regression model on `housing.csv` and saves `model.pkl` and `train_data.pkl`.
 
-**2. Start the visualizer**
+**2. Generate visualization data**
 ```bash
-uv run python app.py
+uv run python src/create_vizualization.py --model example/model.pkl --data example/train_data.pkl --output example/forest_viz.html
 ```
-Open [http://127.0.0.1:8050](http://127.0.0.1:8050) in your browser.
+Processes the trained model and generates visualization output.
+
+**3. View the visualization**
+Navigate to the `frontend/` directory and follow its setup instructions to view the interactive visualization.
 
 ## Features
 
@@ -42,18 +45,24 @@ Open [http://127.0.0.1:8050](http://127.0.0.1:8050) in your browser.
 
 ```
 lightgbm_viz/
-├── housing.csv         # Dataset (5000 rows, housing prices)
-├── pyproject.toml      # uv dependencies
-├── tree_extractor.py   # Extracts tree structure from LightGBM booster
-├── train_model.py      # Trains and saves the model
-├── app.py              # Dash web application
-├── model.pkl           # Trained model (generated)
-└── train_data.pkl      # Train/test split (generated)
+├── src/
+│   ├── tree_extractor.py       # Extracts tree structure from LightGBM booster
+│   ├── create_vizualization.py # Creates interactive forest visualization
+│   └── influence.py            # Analyzes feature influence
+├── example/
+│   ├── train_model.py          # Training script (example usage)
+│   ├── housing.csv             # Dataset (5000 rows, housing prices)
+│   ├── model.pkl               # Trained model (generated)
+│   ├── train_data.pkl          # Train/test split (generated)
+│   └── forest_viz.html         # Interactive visualization (generated)
+├── frontend/                   # Frontend components
+├── pyproject.toml              # uv dependencies
+└── .pre-commit-config.yaml     # Pre-commit hooks configuration
 ```
 
 ## Dataset
 
-`housing.csv` — 5000 synthetic US housing records. Target: `Price`. Features:
+`example/housing.csv` — 5000 synthetic US housing records. Target: `Price`. Features:
 
 - `Avg. Area Income`
 - `Avg. Area House Age`

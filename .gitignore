@@ -9,6 +9,13 @@ wheels/
 # Virtual environments
 .venv
 
+# Precomputed cache
+.cache/
+
 # Node
 node_modules/
 frontend/dist/
+
+# Generated output (regenerate with: uv run python precompute.py)
+forest_viz.html
+frontend/public/data/

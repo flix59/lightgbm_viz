@@ -1,14 +1,12 @@
-import { useEffect, useState } from "react";
-import type { NodeDistributionResponse } from "../types/forest";
-import { fetchNodeDistribution } from "../api/client";
+import { useMemo } from "react";
+import type { TreeData, TreeNode } from "../types/forest";
+import type { SamplesData } from "../api/client";
+import { computeNodeDistribution, type NodeDistribution } from "../api/nodeDistribution";
 
 interface Props {
-  treeIndex: number;
-  nodeId: string;
-  nodeType: "split" | "leaf";
-  featureName?: string;
-  threshold?: number;
-  leafValue?: number;
+  tree: TreeData;
+  node: TreeNode;
+  samples: SamplesData;
   x: number;
   y: number;
 }
@@ -19,10 +17,10 @@ const PAD = { top: 20, right: 15, bottom: 30, left: 50 };
 const PW = W - PAD.left - PAD.right;
 const PH = H - PAD.top - PAD.bottom;
 
-function ScatterPlot({ data }: { data: NodeDistributionResponse }) {
-  const s = data.scatter!;
-  const allX = [...s.left_x, ...s.right_x];
-  const allY = [...s.left_y, ...s.right_y];
+function ScatterPlot({ dist }: { dist: NodeDistribution }) {
+  const s = dist.scatter!;
+  const allX = [...s.leftX, ...s.rightX];
+  const allY = [...s.leftY, ...s.rightY];
   const xMin = Math.min(...allX);
   const xMax = Math.max(...allX);
   const yMin = Math.min(...allY);
@@ -34,139 +32,92 @@ function ScatterPlot({ data }: { data: NodeDistributionResponse }) {
   const sy = (v: number) => PAD.top + PH - ((v - yMin) / yRange) * PH;
 
   const thresholdX = sx(s.threshold);
-
-  // Axis ticks
   const xTicks = [xMin, xMin + xRange / 2, xMax];
   const yTicks = [yMin, yMin + yRange / 2, yMax];
 
   return (
     <svg width={W} height={H} style={{ display: "block" }}>
-      {/* Axis lines */}
       <line x1={PAD.left} y1={PAD.top + PH} x2={PAD.left + PW} y2={PAD.top + PH} stroke="#ccc" />
       <line x1={PAD.left} y1={PAD.top} x2={PAD.left} y2={PAD.top + PH} stroke="#ccc" />
-
-      {/* X ticks + labels */}
       {xTicks.map((v, i) => (
         <g key={`xt${i}`}>
           <line x1={sx(v)} y1={PAD.top + PH} x2={sx(v)} y2={PAD.top + PH + 4} stroke="#999" />
-          <text x={sx(v)} y={PAD.top + PH + 14} textAnchor="middle" fontSize={8} fill="#888">
-            {v.toFixed(0)}
-          </text>
+          <text x={sx(v)} y={PAD.top + PH + 14} textAnchor="middle" fontSize={8} fill="#888">{v.toFixed(0)}</text>
         </g>
       ))}
-
-      {/* Y ticks + labels */}
       {yTicks.map((v, i) => (
         <g key={`yt${i}`}>
           <line x1={PAD.left - 4} y1={sy(v)} x2={PAD.left} y2={sy(v)} stroke="#999" />
-          <text x={PAD.left - 6} y={sy(v) + 3} textAnchor="end" fontSize={8} fill="#888">
-            ${(v / 1000).toFixed(0)}k
-          </text>
+          <text x={PAD.left - 6} y={sy(v) + 3} textAnchor="end" fontSize={8} fill="#888">${(v / 1000).toFixed(0)}k</text>
         </g>
       ))}
-
-      {/* Axis labels */}
-      <text x={PAD.left + PW / 2} y={H - 2} textAnchor="middle" fontSize={9} fill="#666">
-        {s.feature_name}
-      </text>
-      <text x={10} y={PAD.top + PH / 2} textAnchor="middle" fontSize={9} fill="#666" transform={`rotate(-90, 10, ${PAD.top + PH / 2})`}>
-        Price
-      </text>
-
-      {/* Left points (≤ threshold) */}
-      {s.left_x.map((xv, i) => (
-        <circle key={`l${i}`} cx={sx(xv)} cy={sy(s.left_y[i])} r={2} fill="steelblue" opacity={0.45} />
+      <text x={PAD.left + PW / 2} y={H - 2} textAnchor="middle" fontSize={9} fill="#666">{s.featureName}</text>
+      <text x={10} y={PAD.top + PH / 2} textAnchor="middle" fontSize={9} fill="#666" transform={`rotate(-90, 10, ${PAD.top + PH / 2})`}>Price</text>
+      {s.leftX.map((xv, i) => (
+        <circle key={`l${i}`} cx={sx(xv)} cy={sy(s.leftY[i])} r={2} fill="steelblue" opacity={0.45} />
       ))}
-
-      {/* Right points (> threshold) */}
-      {s.right_x.map((xv, i) => (
-        <circle key={`r${i}`} cx={sx(xv)} cy={sy(s.right_y[i])} r={2} fill="tomato" opacity={0.45} />
+      {s.rightX.map((xv, i) => (
+        <circle key={`r${i}`} cx={sx(xv)} cy={sy(s.rightY[i])} r={2} fill="tomato" opacity={0.45} />
       ))}
-
-      {/* Threshold line */}
       <line x1={thresholdX} y1={PAD.top} x2={thresholdX} y2={PAD.top + PH} stroke="#333" strokeWidth={1.5} strokeDasharray="4 2" />
-      <text x={thresholdX + 3} y={PAD.top + 10} fontSize={8} fill="#333" fontWeight={600}>
-        {s.threshold.toFixed(2)}
-      </text>
+      <text x={thresholdX + 3} y={PAD.top + 10} fontSize={8} fill="#333" fontWeight={600}>{s.threshold.toFixed(2)}</text>
     </svg>
   );
 }
 
-function Histogram({ data }: { data: NodeDistributionResponse }) {
-  const maxCount = Math.max(...data.histogram.counts);
+function Histogram({ dist }: { dist: NodeDistribution }) {
+  const maxCount = Math.max(...dist.histCounts);
   return (
     <div style={{ display: "flex", alignItems: "flex-end", height: 50, gap: 1 }}>
-      {data.histogram.counts.map((count, i) => (
-        <div
-          key={i}
-          style={{
-            flex: 1,
-            height: `${(count / maxCount) * 100}%`,
-            background: "#58d68d",
-            borderRadius: "1px 1px 0 0",
-            minHeight: count > 0 ? 2 : 0,
-          }}
-        />
+      {dist.histCounts.map((count, i) => (
+        <div key={i} style={{ flex: 1, height: `${(count / maxCount) * 100}%`, background: "#58d68d", borderRadius: "1px 1px 0 0", minHeight: count > 0 ? 2 : 0 }} />
       ))}
     </div>
   );
 }
 
-export default function LeafTooltip({ treeIndex, nodeId, nodeType, featureName, threshold, leafValue, x, y }: Props) {
-  const [data, setData] = useState<NodeDistributionResponse | null>(null);
+export default function LeafTooltip({ tree, node, samples, x, y }: Props) {
+  const dist = useMemo(
+    () => computeNodeDistribution(tree, node.id, node, samples),
+    [tree, node, samples],
+  );
 
-  useEffect(() => {
-    let cancelled = false;
-    const timer = setTimeout(() => {
-      fetchNodeDistribution(treeIndex, nodeId).then((d) => {
-        if (!cancelled) setData(d);
-      });
-    }, 150);
-    return () => { cancelled = true; clearTimeout(timer); };
-  }, [treeIndex, nodeId]);
-
-  // Position tooltip so it doesn't overflow viewport
-  const tooltipWidth = data?.scatter ? W + 32 : 260;
+  const tooltipWidth = dist?.scatter ? W + 32 : 260;
   const left = x + tooltipWidth + 20 > window.innerWidth ? x - tooltipWidth - 12 : x + 12;
   const top = Math.max(10, Math.min(y - 10, window.innerHeight - 340));
 
-  if (!data) {
+  if (!dist) {
     return (
       <div style={{ position: "fixed", left, top, zIndex: 1000, background: "#fff", border: "1px solid #ccc", borderRadius: 8, padding: "10px 14px", boxShadow: "0 4px 12px rgba(0,0,0,0.15)", fontSize: 12 }}>
-        Loading...
+        No data
       </div>
     );
   }
 
-  const totalSamples = data.histogram.counts.reduce((a, b) => a + b, 0);
-  const { target_stats: stats } = data;
-
-  const title = nodeType === "split"
-    ? `${featureName} ≤ ${threshold?.toFixed(2)}`
-    : `Leaf value: ${leafValue?.toFixed(3)}`;
+  const title = node.type === "split"
+    ? `${node.feature_name} ≤ ${node.threshold?.toFixed(2)}`
+    : `Leaf value: ${node.leaf_value?.toFixed(3)}`;
 
   return (
     <div style={{ position: "fixed", left, top, zIndex: 1000, background: "#fff", border: "1px solid #ccc", borderRadius: 8, padding: "12px 16px", boxShadow: "0 4px 12px rgba(0,0,0,0.15)", fontSize: 12 }}>
       <div style={{ fontWeight: 700, marginBottom: 2, color: "#2c3e50" }}>{title}</div>
       <div style={{ color: "#888", marginBottom: 6 }}>
-        n={totalSamples}
-        {data.scatter && (
+        n={dist.sampleCount}
+        {dist.scatter && (
           <span>
             {" "}&middot;{" "}
-            <span style={{ color: "steelblue", fontWeight: 600 }}>&#9679; ≤ ({data.scatter.left_x.length})</span>
+            <span style={{ color: "steelblue", fontWeight: 600 }}>&#9679; ≤ ({dist.scatter.leftX.length})</span>
             {" "}
-            <span style={{ color: "tomato", fontWeight: 600 }}>&#9679; &gt; ({data.scatter.right_x.length})</span>
+            <span style={{ color: "tomato", fontWeight: 600 }}>&#9679; &gt; ({dist.scatter.rightX.length})</span>
           </span>
         )}
       </div>
-
-      {data.scatter ? <ScatterPlot data={data} /> : <Histogram data={data} />}
-
+      {dist.scatter ? <ScatterPlot dist={dist} /> : <Histogram dist={dist} />}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "2px 12px", color: "#555", marginTop: 6 }}>
-        <span>Mean: <b>${stats.mean.toLocaleString(undefined, { maximumFractionDigits: 0 })}</b></span>
-        <span>Median: <b>${stats.median.toLocaleString(undefined, { maximumFractionDigits: 0 })}</b></span>
-        <span>Std: <b>${stats.std.toLocaleString(undefined, { maximumFractionDigits: 0 })}</b></span>
-        <span>Q25–Q75: <b>${stats.q25.toLocaleString(undefined, { maximumFractionDigits: 0 })}</b>–<b>${stats.q75.toLocaleString(undefined, { maximumFractionDigits: 0 })}</b></span>
+        <span>Mean: <b>${dist.targetMean.toLocaleString(undefined, { maximumFractionDigits: 0 })}</b></span>
+        <span>Median: <b>${dist.targetMedian.toLocaleString(undefined, { maximumFractionDigits: 0 })}</b></span>
+        <span>Std: <b>${dist.targetStd.toLocaleString(undefined, { maximumFractionDigits: 0 })}</b></span>
+        <span>Min–Max: <b>${dist.targetMin.toLocaleString(undefined, { maximumFractionDigits: 0 })}</b>–<b>${dist.targetMax.toLocaleString(undefined, { maximumFractionDigits: 0 })}</b></span>
       </div>
     </div>
   );

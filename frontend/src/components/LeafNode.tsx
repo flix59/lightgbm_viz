@@ -37,7 +37,7 @@ function LeafNode({ data }: NodeProps) {
       <div style={{ fontSize: fontSize * 0.75, color: "#888", lineHeight: 1.2 }}>
         n={d.sampleCount}
       </div>
-      <Handle type="target" position={Position.Top} style={{ opacity: 0 }} />
+      <Handle type="target" position={Position.Top} style={{ opacity: 0, width: 0, height: 0, minWidth: 0, minHeight: 0, border: "none" }} />
     </div>
   );
 }
