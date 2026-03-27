@@ -122,7 +122,7 @@ function layoutTree(
     const nodeId = `${tree.tree_index}-${n.id}`;
 
     const sizeScale = 0.4 + 0.6 * (n.sample_count / maxSamples);
-    const baseSize = Math.max(30, 60 * scale);
+    const baseSize = Math.max(45, 90 * scale);
     const size = baseSize * sizeScale;
 
     nodes.push({

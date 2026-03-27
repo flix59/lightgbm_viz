@@ -13,7 +13,7 @@ interface SplitNodeData {
 
 function SplitNode({ data }: NodeProps) {
   const d = data as unknown as SplitNodeData;
-  const fontSize = Math.max(7, 10 * d.scale);
+  const fontSize = Math.max(8, 9 * d.scale);
 
   return (
     <div
@@ -27,18 +27,12 @@ function SplitNode({ data }: NodeProps) {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        padding: 2,
+        padding: 3,
         overflow: "hidden",
       }}
     >
       <div style={{ fontSize, fontWeight: 600, color: "#2c3e50", lineHeight: 1.2, textAlign: "center", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "100%" }}>
         {d.featureName}
-      </div>
-      <div style={{ fontSize: fontSize * 0.85, color: "#555", lineHeight: 1.2 }}>
-        &le; {d.threshold?.toFixed(2)}
-      </div>
-      <div style={{ fontSize: fontSize * 0.75, color: "#888", lineHeight: 1.2 }}>
-        n={d.sampleCount}
       </div>
       <Handle type="target" position={Position.Top} style={{ opacity: 0, width: 0, height: 0, minWidth: 0, minHeight: 0, border: "none" }} />
       <Handle type="source" position={Position.Bottom} style={{ opacity: 0, width: 0, height: 0, minWidth: 0, minHeight: 0, border: "none" }} />
