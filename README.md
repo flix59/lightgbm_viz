@@ -1,6 +1,8 @@
 # LightGBM Tree Visualizer
 
 Interactive visualization tool for exploring all trees in a LightGBM boosted forest with a modern frontend.
+## Example
+The visualization for the example is available at: https://flix59.github.io/lightgbm_viz/example/forest_viz.html
 
 ## Setup
 
@@ -29,7 +31,8 @@ uv run python src/create_vizualization.py --model example/model.pkl --data examp
 Processes the trained model and generates visualization output.
 
 **3. View the visualization**
-Navigate to the `frontend/` directory and follow its setup instructions to view the interactive visualization.
+- **Online:** [View example visualization on GitHub Pages](https://flix59.github.io/lightgbm_viz/example/forest_viz.html)
+- **Locally:** Navigate to the `frontend/` directory and follow its setup instructions to view the interactive visualization.
 
 ## Features
 
