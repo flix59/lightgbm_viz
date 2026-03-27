@@ -1,5 +1,5 @@
 """Extract tree structure and statistics from LightGBM models."""
-import json
+
 import pandas as pd
 import numpy as np
 from typing import Dict, List, Any
@@ -29,7 +29,7 @@ class TreeExtractor:
     def _extract_tree_info(self) -> List[Dict[str, Any]]:
         """Extract tree structure from booster."""
         model_dump = self.booster.dump_model()
-        return model_dump['tree_info']
+        return model_dump["tree_info"]
 
     def get_num_trees(self) -> int:
         """Get total number of trees in the model."""
@@ -38,8 +38,10 @@ class TreeExtractor:
     def get_tree(self, tree_idx: int) -> Dict[str, Any]:
         """Get structure of a specific tree."""
         if tree_idx < 0 or tree_idx >= len(self.tree_info):
-            raise ValueError(f"Tree index {tree_idx} out of range [0, {len(self.tree_info)})")
-        return self.tree_info[tree_idx]['tree_structure']
+            raise ValueError(
+                f"Tree index {tree_idx} out of range [0, {len(self.tree_info)})"
+            )
+        return self.tree_info[tree_idx]["tree_structure"]
 
     def calculate_node_samples(self, tree_idx: int) -> Dict[str, int]:
         """
@@ -56,14 +58,16 @@ class TreeExtractor:
 
         def traverse(node, sample_indices):
             """Recursively traverse tree and count samples at each node."""
-            if 'split_index' not in node:
+            if "split_index" not in node:
                 # Leaf node
-                node_samples[f"leaf_{node.get('leaf_index', 'unknown')}"] = len(sample_indices)
+                node_samples[f"leaf_{node.get('leaf_index', 'unknown')}"] = len(
+                    sample_indices
+                )
                 return
 
-            split_feature = node['split_feature']
-            threshold = node['threshold']
-            decision_type = node.get('decision_type', '<=')
+            split_feature = node["split_feature"]
+            threshold = node["threshold"]
+            decision_type = node.get("decision_type", "<=")
 
             # Get feature name
             feature_name = self.feature_names[split_feature]
@@ -71,7 +75,7 @@ class TreeExtractor:
             # Split samples
             feature_values = self.X_data[feature_name].iloc[sample_indices].values
 
-            if decision_type == '<=':
+            if decision_type == "<=":
                 left_mask = feature_values <= threshold
             else:
                 left_mask = feature_values < threshold
@@ -84,10 +88,10 @@ class TreeExtractor:
             node_samples[node_id] = len(sample_indices)
 
             # Recurse
-            if 'left_child' in node:
-                traverse(node['left_child'], left_indices)
-            if 'right_child' in node:
-                traverse(node['right_child'], right_indices)
+            if "left_child" in node:
+                traverse(node["left_child"], left_indices)
+            if "right_child" in node:
+                traverse(node["right_child"], right_indices)
 
         # Start traversal
         traverse(tree, samples)
@@ -98,35 +102,34 @@ class TreeExtractor:
         tree = self.get_tree(tree_idx)
         node_samples = self.calculate_node_samples(tree_idx)
 
-        def count_nodes(node, node_type='all'):
+        def count_nodes(node, node_type="all"):
             """Count nodes in tree."""
-            if 'split_index' not in node:
-                return 1 if node_type in ['all', 'leaf'] else 0
-            count = 1 if node_type in ['all', 'split'] else 0
-            count += count_nodes(node['left_child'], node_type)
-            count += count_nodes(node['right_child'], node_type)
+            if "split_index" not in node:
+                return 1 if node_type in ["all", "leaf"] else 0
+            count = 1 if node_type in ["all", "split"] else 0
+            count += count_nodes(node["left_child"], node_type)
+            count += count_nodes(node["right_child"], node_type)
             return count
 
         total_samples = len(self.X_data)
 
         return {
-            'tree_index': tree_idx,
-            'total_nodes': count_nodes(tree, 'all'),
-            'split_nodes': count_nodes(tree, 'split'),
-            'leaf_nodes': count_nodes(tree, 'leaf'),
-            'total_samples': total_samples,
-            'node_samples': node_samples
+            "tree_index": tree_idx,
+            "total_nodes": count_nodes(tree, "all"),
+            "split_nodes": count_nodes(tree, "split"),
+            "leaf_nodes": count_nodes(tree, "leaf"),
+            "total_samples": total_samples,
+            "node_samples": node_samples,
         }
 
     def get_feature_importance(self) -> pd.DataFrame:
         """Calculate feature importance across all trees."""
-        importance = self.booster.feature_importance(importance_type='gain')
+        importance = self.booster.feature_importance(importance_type="gain")
         feature_names = self.booster.feature_name()
 
-        df = pd.DataFrame({
-            'feature': feature_names,
-            'importance': importance
-        }).sort_values('importance', ascending=False)
+        df = pd.DataFrame(
+            {"feature": feature_names, "importance": importance}
+        ).sort_values("importance", ascending=False)
 
         return df
 
@@ -144,25 +147,31 @@ class TreeExtractor:
         node_indices: Dict[str, np.ndarray] = {}
 
         def traverse(node, sample_indices: np.ndarray):
-            if 'split_index' not in node:
-                node_indices[f"leaf_{node.get('leaf_index', 'unknown')}"] = sample_indices
+            if "split_index" not in node:
+                node_indices[f"leaf_{node.get('leaf_index', 'unknown')}"] = (
+                    sample_indices
+                )
                 return
 
-            split_feature = node['split_feature']
-            threshold = node['threshold']
-            decision_type = node.get('decision_type', '<=')
+            split_feature = node["split_feature"]
+            threshold = node["threshold"]
+            decision_type = node.get("decision_type", "<=")
             feature_name = self.feature_names[split_feature]
             feature_values = self.X_data[feature_name].iloc[sample_indices].values
 
-            left_mask = feature_values <= threshold if decision_type == '<=' else feature_values < threshold
+            left_mask = (
+                feature_values <= threshold
+                if decision_type == "<="
+                else feature_values < threshold
+            )
 
             node_id = f"split_{node['split_index']}"
             node_indices[node_id] = sample_indices
 
-            if 'left_child' in node:
-                traverse(node['left_child'], sample_indices[left_mask])
-            if 'right_child' in node:
-                traverse(node['right_child'], sample_indices[~left_mask])
+            if "left_child" in node:
+                traverse(node["left_child"], sample_indices[left_mask])
+            if "right_child" in node:
+                traverse(node["right_child"], sample_indices[~left_mask])
 
         traverse(tree, np.arange(len(self.X_data)))
         self._node_indices_cache[tree_idx] = node_indices
@@ -181,7 +190,9 @@ class TreeExtractor:
         """
         contributions = []
         for i in range(self.get_num_trees()):
-            preds = self.booster.predict(self.X_data, start_iteration=i, num_iteration=1)
+            preds = self.booster.predict(
+                self.X_data, start_iteration=i, num_iteration=1
+            )
             contributions.append(float(np.mean(np.abs(preds))))
         return np.array(contributions)
 
@@ -196,9 +207,8 @@ class TreeExtractor:
             Array of leaf indices (n_samples,) or (n_samples, n_trees)
         """
         if tree_idx is not None:
-            return self.booster.predict(self.X_data,
-                                       start_iteration=tree_idx,
-                                       num_iteration=1,
-                                       pred_leaf=True).flatten()
+            return self.booster.predict(
+                self.X_data, start_iteration=tree_idx, num_iteration=1, pred_leaf=True
+            ).flatten()
         else:
             return self.booster.predict(self.X_data, pred_leaf=True)

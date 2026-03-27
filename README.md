@@ -18,15 +18,23 @@ uv sync
 
 **1. Train the model**
 ```bash
-uv run python train_model.py
+cd examples
+uv run python ../src/train_model.py
+cd ..
 ```
-Trains a LightGBM regression model on `housing.csv` and saves `model.pkl` + `train_data.pkl`.
+Trains a LightGBM regression model on `housing.csv` and saves `model.pkl` and `train_data.pkl`.
 
-**2. Start the visualizer**
+**2. Create visualization**
 ```bash
-uv run python app.py
+uv run python src/create_vizualization.py --model examples/model.pkl --data examples/train_data.pkl --output examples/forest_viz.html
 ```
-Open [http://127.0.0.1:8050](http://127.0.0.1:8050) in your browser.
+Generates an interactive HTML visualization of the forest. Open `examples/forest_viz.html` in your browser.
+
+**3. Analyze feature influence**
+```bash
+uv run python src/influence.py
+```
+Analyzes feature influence across the forest (requires trained model).
 
 ## Features
 
@@ -42,18 +50,24 @@ Open [http://127.0.0.1:8050](http://127.0.0.1:8050) in your browser.
 
 ```
 lightgbm_viz/
-├── housing.csv         # Dataset (5000 rows, housing prices)
-├── pyproject.toml      # uv dependencies
-├── tree_extractor.py   # Extracts tree structure from LightGBM booster
-├── train_model.py      # Trains and saves the model
-├── app.py              # Dash web application
-├── model.pkl           # Trained model (generated)
-└── train_data.pkl      # Train/test split (generated)
+├── src/
+│   ├── tree_extractor.py      # Extracts tree structure from LightGBM booster
+│   ├── train_model.py         # Trains and saves the model
+│   ├── create_vizualization.py # Creates interactive forest visualization
+│   └── influence.py           # Analyzes feature influence
+├── examples/
+│   ├── housing.csv      # Dataset (5000 rows, housing prices)
+│   ├── model.pkl        # Trained model (generated)
+│   ├── train_data.pkl   # Train/test split (generated)
+│   └── forest_viz.html  # Interactive visualization (generated)
+├── frontend/            # Frontend components (if applicable)
+├── pyproject.toml       # uv dependencies
+└── .pre-commit-config.yaml  # Pre-commit hooks configuration
 ```
 
 ## Dataset
 
-`housing.csv` — 5000 synthetic US housing records. Target: `Price`. Features:
+`examples/housing.csv` — 5000 synthetic US housing records. Target: `Price`. Features:
 
 - `Avg. Area Income`
 - `Avg. Area House Age`

@@ -37,28 +37,27 @@ export interface ForestResponse {
   trees: TreeData[];
 }
 
-export interface ScatterData {
-  left_x: number[];
-  left_y: number[];
-  right_x: number[];
-  right_y: number[];
+// SHAP
+export interface ShapFeatureSummary {
   feature_name: string;
-  threshold: number;
+  mean_abs_shap: number;
+  values: number[];
+  shap_values: number[];
 }
 
-export interface NodeDistributionResponse {
-  histogram: {
-    bin_edges: number[];
-    counts: number[];
-  };
-  target_stats: {
-    mean: number;
-    median: number;
-    std: number;
-    min: number;
-    max: number;
-    q25: number;
-    q75: number;
-  };
-  scatter: ScatterData | null;
+export interface ShapSummaryResponse {
+  features: ShapFeatureSummary[];
+  base_value: number;
+}
+
+// PDP
+export interface PdpCurve {
+  feature_name: string;
+  grid: number[];
+  avg_prediction: number[];
+  feature_values: number[];
+}
+
+export interface PdpResponse {
+  curves: PdpCurve[];
 }
