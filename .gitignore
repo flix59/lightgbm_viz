@@ -17,5 +17,4 @@ node_modules/
 frontend/dist/
 
 # Generated output (regenerate with: uv run python precompute.py)
-forest_viz.html
 frontend/public/data/
